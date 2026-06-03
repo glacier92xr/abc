@@ -28,7 +28,6 @@ jobs:
           ref: ${{ env.TARGET_SYNC_BRANCH }}
           fetch-depth: 0
 
-      # 步骤 2: 添加上游仓库远程地址
       - name: 添加上游仓库远程地址
         id: add_upstream_remote
         run: |
@@ -49,7 +48,6 @@ jobs:
             echo "${{ env.TARGET_SYNC_BRANCH }} 已是最新，无需同步"
           fi
 
-      # 步骤 4: 同步上游更改并推送（跳过 workflow 文件以避免权限错误）
       - name: 同步上游更改并推送（跳过 workflow 文件）
         id: sync_upstream_changes
         if: env.need_update == 'true'
