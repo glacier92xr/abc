@@ -28,6 +28,12 @@ jobs:
           ref: ${{ env.TARGET_SYNC_BRANCH }}
           fetch-depth: 0
 
+      - name: 配置 Git 用户
+        id: config_git_user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: 添加上游仓库远程地址
         id: add_upstream_remote
         run: |
@@ -64,20 +70,14 @@ jobs:
           # 恢复 fork 专用的 workflow 文件（避免 GITHUB_TOKEN 限制导致无法推送 workflow 文件更改）
           cp -r /tmp/save-workflows/* .github/workflows/ 2>/dev/null || true
 
-          # 暂存所有更改并检查 workflow 文件是否有实际差异
+          # 暂存所有更改，但排除 workflow 文件（不提交到 git）
           git add -A
-          if ! git diff --cached --quiet -- '.github/workflows/'; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore: restore fork-specific workflow files"
-            echo "=== workflow 文件已恢复 ==="
-          else
-            echo "=== workflow 文件无变化，无需恢复 ==="
-          fi
+          git reset HEAD .github/workflows/ 2>/dev/null || true
 
-          # 推送 — workflow 文件无差异，因此 GITHUB_TOKEN 权限足够
-          git push --force origin ${{ env.TARGET_SYNC_BRANCH }}
-          echo "=== 推送完成 ==="
+          # 推送 — 排除 workflow 目录以避免 GitHub App 权限限制
+          # 使用 pathspec negative exclusion 避免推送 workflow 文件
+          git push --force origin ${{ env.TARGET_SYNC_BRANCH }} -- ':!.github/workflows/*'
+          echo "=== 推送完成（workflow 文件已排除）==="
 
       - name: 验证同步完成
         id: verify_sync_complete
